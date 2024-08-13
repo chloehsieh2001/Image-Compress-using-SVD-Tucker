@@ -1,0 +1,381 @@
+---
+title: "Assignment 1"
+author: "Chloe Hsieh"
+date: "2023-03-21"
+output:
+  pdf_document:
+    toc: true
+    toc_depth: '2'
+  html_document:
+    toc: true
+    toc_depth: 2
+    toc_float:
+      collasped: false
+      smooth_scroll: false
+---
+
+
+
+
+# **Q1**
+
+```{r}
+library(ggplot2)
+
+set.seed(123)
+
+#number of repetitions
+repetitions <- 100
+
+#vector to store maximum correlations for each value of p
+max_correlations_p_10 <- numeric(repetitions)
+max_correlations_p_100 <- numeric(repetitions)
+max_correlations_p_1000 <- numeric(repetitions)
+
+#repeat the procedure 100 times for each value of p
+for (i in 1:repetitions) {
+    # p = 10
+    sample_p_10 <- matrix(rnorm(n = 50 * 10, mean = 0, sd = 1), ncol = 10)
+    correlations_p_10 <- cor(sample_p_10[,1], sample_p_10[,-1])
+    correlations_p_10 <- correlations_p_10[-1]
+    max_correlations_p_10[i] <- max(correlations_p_10)
+    
+    # p = 100
+    sample_p_100 <- matrix(rnorm(n = 50 * 100, mean = 0, sd = 1), ncol = 100)
+    correlations_p_100 <- cor(sample_p_100[,1], sample_p_100[,-1])
+    correlations_p_100 <- correlations_p_100[-1]
+    max_correlations_p_100[i] <- max(correlations_p_100)
+    
+    # p = 1000
+    sample_p_1000 <- matrix(rnorm(n = 50 * 1000, mean = 0, sd = 1), ncol = 1000)
+    correlations_p_1000 <- cor(sample_p_1000[,1], sample_p_1000[,-1])
+    correlations_p_1000 <- correlations_p_1000[-1]
+    max_correlations_p_1000[i] <- max(correlations_p_1000)
+}
+
+#combine the maximum correlations into a data frame
+df <- data.frame(
+  p = rep(c(10, 100, 1000), each = repetitions),
+  max_correlation = c(max_correlations_p_10, max_correlations_p_100, 
+                      max_correlations_p_1000)
+)
+
+#create boxplot 
+ggplot(df, aes(x = as.factor(p), y = max_correlation)) +
+  geom_boxplot() +
+  labs(x = "p", y = "Maximum Correlation") +
+  ggtitle("Maximum Correlation for Different p") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  scale_x_discrete(labels = c("10", "100", "1000"))
+
+
+
+```
+
+From the boxplots from p = 10 to p = 1000, we can observe that: 
+
+Higher Correlation: As p increases from 10 to 100 to 1000, the distribution of r tends to shift towards higher values. This suggests that as the number of independent variables increases, there is a higher likelihood of finding a higher correlation between the first variable and one of the other variables.
+
+Lower Variability of Maximum Correlation: The spread of r values, as indicated by the lengths of the boxes and whiskers, varies across different p values. For p=10, the spread appears to be wider compared to p=100 and p=1000. This suggests more variability in the maximum correlation values for p=10, indicating that the range of possible maximum correlations is broader.
+
+Overall, as p increases, the spread of the maximum correlation coefficients tends to increase.
+For smaller values of p (e.gp=10), the maximum correlation coefficients are generally lower and more tightly clustered around zero. For larger values of p (e.g.p=1000), the maximum correlation coefficients show greater variability and can be higher.
+
+This demonstrates the phenomenon of Spurious Correlation: As the number of variables increases, so does the chance of encountering high correlations by chance, even though the data is generated independently. The reason lies in the selection bias caused by choosing the maximum value. Selecting the maximum value introduces bias in the selection process. By addressing this factor and using the average instead of the maximum value, the positive correlation phenomenon may vanish.
+
+
+
+
+# **Q2**
+
+## (a)
+```{r}
+set.seed(123)
+
+#set the sample size
+n <- 500
+
+#generate X values from a uniform distribution U(0, 1)
+X <- runif(n, min = 0, max = 1)
+
+#generate Y values from the given normal distribution N(1 + X, 0.1)
+Y <- rnorm(n, mean = 1 + X, sd = 0.1)
+
+#display the first few values of X and Y
+head(data.frame(X = X, Y = Y))
+
+#combine X and Y into a data frame
+data <- data.frame(X = X, Y = Y)
+
+#fit a linear regression model using full data
+model <- lm(Y ~ X, data = data)
+
+#summary of the model
+summary(model)
+
+par(mfrow = c(2, 2), oma = c(0, 0, 1.1, 0), mar = c(4.1, 4.1, 2.1, 1.1))
+plot(model)
+
+```
+
+From the summary of the entire dataset, 88.98% of Y's variance can be explained by X. X's coefficient is 1.004389, which means that when X increases by 1 unit, Y will increase by 1.004389 units.
+
+The p-value associated with the coefficient estimate for X is very low (< 0.05), suggesting that the coefficient is statistically significant at conventional significance levels. This implies that there is strong evidence to reject the null hypothesis that the true coefficient for X is zero.
+
+From the residual plot, there doesn't appear to be any clear pattern in the residuals against the fitted values, indicating that the assumption of linearity may be reasonable. However, there might be slight heteroscedasticity. The same interpretation can be derived from the scale-location plot. 
+From the Q-Q plot, the points generally fall close to the diagonal line, suggesting that the residuals approximately follow a normal distribution. However, there may be some deviations at the tails, indicating slight departures from normality. 
+From the Residuals vs Leverage plot, there are no clear influential points identified by Cook's distance, suggesting that no single observation overly influences the regression results.
+
+
+## (b)
+```{r}
+#calculate the 15% quantiles of X
+quantile_15 <- quantile(X, probs = c(0.15, 0.85))
+
+#filter the data to include only the highest 15% and lowest 15% values of X
+data_30_percent <- data[data$X <= quantile_15[1] | data$X >= quantile_15[2], ]
+
+#fit a linear regression model using 30% data
+model_30_percent <- lm(Y ~ X, data = data_30_percent)
+
+#summary of the model
+summary(model_30_percent)
+
+par(mfrow = c(2, 2), oma = c(0, 0, 1.1, 0), mar = c(4.1, 4.1, 2.1, 1.1))
+plot(model_30_percent)
+
+```
+
+From the summary of 30% of the data, 94.73% of the variance of Y can be explained by X. The coefficient of X is 0.98365, which means when X increases by 1 unit, Y will increase by 0.98365 units.
+
+The p-value associated with the coefficient estimate indicates its statistical significance within the context of this subset of the data. The low p-value suggests strong evidence against the null hypothesis of no relationship between X and Y within this subset.
+
+From the residual plot, we can observe that the data only appears at the head and tail of the data. In this plot, we observe a random scatter of points with no apparent pattern, which suggests that the assumptions of linearity and constant variance are reasonable within this subset of the data.
+In the Normal Q-Q Plot, we observe that the points generally follow the diagonal line, indicating that the residuals approximately follow a normal distribution within this subset of the data.
+
+
+## (c)
+```{r}
+#calculate the 15% quantiles of X
+quantile_15 <- quantile(X, probs = c(0.15, 0.85))
+
+#filter the data to exclude the highest 15% and lowest 15% values of X
+data_70_percent <- data[data$X > quantile_15[1] & data$X < quantile_15[2], ]
+
+#fit a linear regression model using 70% data
+model_70_percent <- lm(Y ~ X, data = data_70_percent)
+
+#summary of the model
+summary(model_70_percent)
+
+par(mfrow = c(2, 2), oma = c(0, 0, 1.1, 0), mar = c(4.1, 4.1, 2.1, 1.1))
+plot(model_70_percent)
+
+```
+
+From the summary of 70% of the data, 80.69% of the variance of Y can be explained by X. The coefficient of X is 1.04292, which means when X increases by 1 unit, Y will increase by 1.04292 units.
+
+Both coefficients are statistically significant at conventional significance levels (indicated by the *** in the table), with very low p-values (< 0.001). The low p-value suggests strong evidence against the null hypothesis of no relationship between X and Y within this subset.
+
+```{r}
+#compare R-squares
+adjusted_r_squared_full <- summary(model)$adj.r.squared
+adjusted_r_squared_30_percent <- summary(model_30_percent)$adj.r.squared
+adjusted_r_squared_70_percent <- summary(model_70_percent)$adj.r.squared
+
+cat("Adjusted R-squared for full data:", adjusted_r_squared_full, "\n")
+cat("Adjusted R-squared for 30% data:", adjusted_r_squared_30_percent, "\n")
+cat("Adjusted R-squared for 70% data:", adjusted_r_squared_70_percent, "\n")
+```
+
+
+We can observe that the 30% data has the largest  R-squared values, followed by the entire dataset, and 70% data. By selecting only the highest 15% and lowest 15% values of X, the 30% data subset may include extreme values or outliers that have a stronger linear relationship with Y. These extreme values could contribute significantly to the overall variance explained by the model, resulting in a higher R^2 value. In general, by selecting data subsets systemetically like extreme values instead of random sampling, we can get  R^2 values that are significantly different from those obtained using the original full dataset.
+
+
+
+
+# **Q3. SVD**
+
+
+```{r, fig.width=8, fig.height=8}
+library(jpeg)
+
+#read and convert file to gray scale
+read_and_convert_image <- function(image_path) {
+  image <- readJPEG(image_path)
+  if (length(dim(image)) > 2) {
+    image_gray <- apply(image, c(1,2), mean)
+  } else {
+    image_gray <- image
+  }
+  return(matrix(image_gray, nrow = dim(image_gray)[1], ncol = dim(image_gray)[2]))
+}
+
+#SVD decomposition and reconstruct image
+compress_image_with_svd <- function(image_matrix, k) {
+  svd_result <- svd(image_matrix)
+  U <- svd_result$u
+  D <- svd_result$d
+  V <- svd_result$v
+  
+  Dk <- diag(D[1:k])
+  Uk <- U[, 1:k]
+  Vk <- V[, 1:k]
+  
+  return(Uk %*% Dk %*% t(Vk))
+}
+
+#main func
+main <- function(image_path, k) {
+  image_matrix <- read_and_convert_image(image_path)
+  image_reconstructed <- compress_image_with_svd(image_matrix, k)
+  return(image_reconstructed)
+}
+
+#image path
+image_path <- "/Users/user/Desktop/class/SVD_compression.jpg"
+
+#set k values 
+k_values <- c(10, 50, 100, 200, 1024)
+
+#save image
+compressed_images <- list()
+
+for (k in k_values) {
+  compressed_images[[as.character(k)]] <- main(image_path, k)
+}
+
+#plot image
+par(mfrow=c(2, length(k_values)/2))
+
+#original image
+original_image <- read_and_convert_image(image_path)
+rotated_original <- t(original_image)[, ncol(original_image):1]
+
+image(rotated_original, axes = FALSE, col=grey(0:255/255), main="Original Image")
+
+#SVD reconstruct image
+for (k in k_values) {
+  image(t(apply(compressed_images[[as.character(k)]], 2, rev)), 
+        axes = FALSE, col=grey(0:255/255), main=paste("k =", k))
+}
+
+
+```
+
+
+Original image size: 1024 * 1024. 
+
+We can observe that the bigger the chosen k_values are in the SVD, the clearer the image is. 
+
+From k = 10 to k = 200, the image grows from very blurred to clear and similar to the original image.
+
+We also set k = 1024. The result is the same as the original image and brighter than k = 200.
+
+
+# **Q4. Tucker Decomposition**
+
+```{r, fig.width=8, fig.height=8}
+library(jpeg)
+library(rTensor)
+
+perform_tucker_reconstruction <- function(image_path, core_dims, output_path) {
+  #read file
+  img <- readJPEG(image_path)
+  
+  #convert image data to three-dimensional tensor
+  image_array <- aperm(array(img, dim = c(dim(img)[1], dim(img)[2], 
+                                          dim(img)[3])), c(2, 1, 3))
+  image_tensor <- as.tensor(image_array)
+  
+  #Tucker Decomposition
+  tucker_decomp <- tucker(image_tensor, core_dims)
+  
+  #initialize the result as the core tensor
+  reconstructed_tensor <- tucker_decomp$Z
+  
+  #perform n-mode product with each factor matrix in tucker_decomp$U
+  for (i in seq_along(tucker_decomp$U)) {
+    reconstructed_tensor <- ttm(reconstructed_tensor, tucker_decomp$U[[i]], i)
+  }
+  
+  #convert the tensor to an array
+  reconstructed_array <- array(reconstructed_tensor@data, dim = c(dim(img)[1], 
+                                                                  dim(img)[2], 
+                                                                  dim(img)[3]))
+  
+  #transpose the array to match the expected format
+  reconstructed_array <- aperm(reconstructed_array, c(2, 1, 3))
+  
+  #save the reconstructed image
+  writeJPEG(reconstructed_array, output_path)
+}
+
+plot_images <- function(original_image, reconstructed_images, titles) {
+  par(mfrow=c(3, 3))
+  
+  # Plot reconstructed images
+  for (i in seq_along(reconstructed_images)) {
+    plot(0:1, type="n", xlab="", ylab="", xlim=c(0, 1), ylim=c(0, 1))
+    title(titles[i])
+    rasterImage(reconstructed_images[[i]], 0, 0, 1, 1)
+  }
+  
+  # Plot original image
+  plot(0:1, type="n", xlab="", ylab="", xlim=c(0, 1), ylim=c(0, 1))
+  title("Original Image")
+  rasterImage(original_image, 0, 0, 1, 1)
+}
+
+
+#input parameters
+image_path <- "/Users/user/Desktop/class/colorful_image.jpg"
+output_paths <- c("/Users/user/Desktop/class/reconstructed_image1.jpg",
+                  "/Users/user/Desktop/class/reconstructed_image2.jpg",
+                  "/Users/user/Desktop/class/reconstructed_image3.jpg")
+core_dims_list <- list(c(10, 1024, 3), c(100, 1024, 3), c(500, 1024, 3), 
+                       c(1024, 10, 3), c(1024, 100, 3),  c(1024, 500, 3), 
+                       c(1024, 1024, 1), c(1024, 1024, 2),  c(1024, 1024, 3))
+
+
+#perform Tucker decomposition and reconstruction for each core dimension
+reconstructed_images <- list()
+for (i in seq_along(core_dims_list)) {
+  perform_tucker_reconstruction(image_path, core_dims_list[[i]], output_paths[i])
+  reconstructed_images[[i]] <- readJPEG(output_paths[i])
+}
+
+#original image
+original_image <- readJPEG(image_path)
+
+#plot the original and reconstructed images
+plot_images(original_image, reconstructed_images, 
+            c("Tucker Decomposition(10, 1024, 3)", 
+              "Tucker Decomposition(100, 1024, 3)", 
+              "Tucker Decomposition(500, 1024, 3)", 
+              "Tucker Decompositionc(1024, 10, 3)", 
+              "Tucker Decompositionc(1024, 100, 3)", 
+              "Tucker Decomposition(1024, 500, 3)", 
+              "Tucker Decomposition(1024, 1024, 1)", 
+              "Tucker Decomposition(1024, 1024, 2)", 
+              "Tucker Decomposition(1024, 1024, 3)"))
+
+
+```
+
+Original image size: 1024 * 1024 * 3
+
+We notice that as the core tensor (core_dims_list) increases in size during the Tucker decomposition, the clarity of the reconstructed image improves.
+
+We then maintain two dimensions in the tensor and vary the sizes of the first, second, and third modes. Decreasing the first mode compresses the image vertically while reducing the second mode compresses it horizontally. The third mode controls the color channels in RGB (Red, Green, Blue) images. In (1024, 1024, 1) configuration, we observe a predominant blue tone, while (1024, 1024, 2) exhibits a stronger green presence, and (1024, 1024, 3) retains all three original color channels.
+
+In the plot, the final image depicts the original size of 1024 * 1024 * 3, demonstrating that the image remains unchanged from its original one.
+
+
+Example of Tucker and CP decompositions in Python: 
+
+<https://tensorly.org/stable/auto_examples/decomposition/plot_image_compression.html>
+
+
+
